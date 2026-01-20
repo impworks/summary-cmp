@@ -42,7 +42,7 @@ public class CompareModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(Guid sessionId, string rankingOrder)
+    public async Task<IActionResult> OnPostAsync(Guid sessionId, string rankingOrder, string? unacceptableIds)
     {
         Session = await _summarizationService.GetSessionWithResultsAsync(sessionId, HttpContext.RequestAborted);
 
@@ -87,9 +87,22 @@ public class CompareModel : PageModel
             rankings[failed.Id] = failedRank++;
         }
 
+        // Parse unacceptable IDs
+        var unacceptableSet = new HashSet<int>();
+        if (!string.IsNullOrEmpty(unacceptableIds))
+        {
+            foreach (var idStr in unacceptableIds.Split(','))
+            {
+                if (int.TryParse(idStr, out var id))
+                {
+                    unacceptableSet.Add(id);
+                }
+            }
+        }
+
         try
         {
-            await _summarizationService.SaveRankingsAsync(sessionId, rankings, HttpContext.RequestAborted);
+            await _summarizationService.SaveRankingsAsync(sessionId, rankings, unacceptableSet, HttpContext.RequestAborted);
             return RedirectToPage("/Results", new { id = sessionId });
         }
         catch (Exception ex)

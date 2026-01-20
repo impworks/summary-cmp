@@ -1,0 +1,166 @@
+@page
+@model SummaryCmp.Web.Pages.AdminModel
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<h1 class="text-3xl font-bold mb-2">Admin Panel</h1>
+<p class="text-base-content/70 mb-6">Manage sessions and results.</p>
+
+@if (!Model.IsConfigured)
+{
+    <div role="alert" class="alert bg-base-200 text-base-content">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current opacity-60">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>Admin password not configured. Set <code>Auth__AdminPassword</code> environment variable to enable admin access.</span>
+    </div>
+}
+else if (!Model.IsAuthenticated)
+{
+    <div class="card bg-base-200 max-w-md">
+        <div class="card-body">
+            <h2 class="card-title">Admin Login</h2>
+            <form method="post" asp-page-handler="Login">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Admin Password</span>
+                    </label>
+                    <input type="password" name="password" class="input input-bordered" required autofocus />
+                </div>
+                <div class="form-control mt-4">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div role="alert" class="alert alert-success mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+
+    <div class="flex gap-4 mb-6">
+        <a asp-page="/Admin" asp-page-handler="DownloadDatabase" class="btn btn-outline gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download Database
+        </a>
+    </div>
+
+    <h2 class="text-xl font-semibold mb-4">Sessions (@Model.Sessions.Count)</h2>
+
+    @if (!Model.Sessions.Any())
+    {
+        <div role="alert" class="alert bg-base-200 text-base-content">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current opacity-60">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>No sessions found.</span>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-4">
+            @foreach (var session in Model.Sessions)
+            {
+                <div class="collapse collapse-arrow bg-base-200">
+                    <input type="checkbox" />
+                    <div class="collapse-title">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-mono text-sm">@session.Id.ToString()[..8]...</span>
+                            <span class="text-sm text-base-content/60">@session.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                            @if (session.IsRanked)
+                            {
+                                <span class="badge badge-success badge-sm">Ranked</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning badge-sm">Pending</span>
+                            }
+                            @if (!string.IsNullOrEmpty(session.SampleFileName))
+                            {
+                                <span class="badge badge-info badge-sm">@session.SampleFileName</span>
+                            }
+                            <span class="text-sm text-base-content/50">@session.SummaryResults.Count results</span>
+                        </div>
+                    </div>
+                    <div class="collapse-content">
+                        <div class="space-y-4 pt-2">
+                            <div class="bg-base-100 p-3 rounded-lg">
+                                <div class="text-xs font-semibold text-base-content/60 mb-1">Input Text</div>
+                                <p class="text-sm whitespace-pre-wrap max-h-32 overflow-y-auto">@session.InputText</p>
+                            </div>
+
+                            <div class="divider my-2">Results</div>
+
+                            @foreach (var result in session.SummaryResults.OrderBy(r => r.UserRank ?? 999))
+                            {
+                                <div class="bg-base-100 p-3 rounded-lg @(result.IsUnacceptable ? "border-2 border-warning" : "")">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                        <div class="flex items-center gap-2">
+                                            @if (result.UserRank.HasValue)
+                                            {
+                                                <span class="badge badge-primary">#@result.UserRank</span>
+                                            }
+                                            <span class="font-semibold">@result.ProviderModel.DisplayName</span>
+                                            @if (result.IsSuccess)
+                                            {
+                                                <span class="badge badge-ghost badge-sm">@result.DurationMs ms</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-error badge-sm">Failed</span>
+                                            }
+                                            @if (result.IsUnacceptable)
+                                            {
+                                                <span class="badge badge-warning badge-sm">Unacceptable</span>
+                                            }
+                                        </div>
+                                        <form method="post" asp-page-handler="ToggleFlag" class="inline">
+                                            <input type="hidden" name="resultId" value="@result.Id" />
+                                            <button type="submit" class="btn btn-ghost btn-xs @(result.IsUnacceptable ? "text-warning" : "text-base-content/40")">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                                </svg>
+                                                @(result.IsUnacceptable ? "Unflag" : "Flag")
+                                            </button>
+                                        </form>
+                                    </div>
+                                    @if (result.IsSuccess)
+                                    {
+                                        <p class="text-sm whitespace-pre-wrap">@result.SummaryText</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-sm text-error">@result.ErrorMessage</p>
+                                    }
+                                </div>
+                            }
+
+                            <div class="flex justify-end pt-2">
+                                <form method="post" asp-page-handler="DeleteSession" onsubmit="return confirm('Are you sure you want to delete this session?');">
+                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                    <button type="submit" class="btn btn-error btn-sm gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete Session
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}

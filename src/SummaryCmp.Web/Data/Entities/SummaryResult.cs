@@ -11,6 +11,7 @@ public class SummaryResult
     public string? ErrorMessage { get; set; }
     public int? UserRank { get; set; }
     public int DisplayOrder { get; set; }
+    public bool IsUnacceptable { get; set; }  // Flagged as hallucinated, missed point, etc.
 
     // Token usage tracking
     public int? InputTokens { get; set; }

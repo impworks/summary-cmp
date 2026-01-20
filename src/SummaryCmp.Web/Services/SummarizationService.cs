@@ -101,7 +101,7 @@ public class SummarizationService
             .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
     }
 
-    public async Task SaveRankingsAsync(Guid sessionId, Dictionary<int, int> rankings, CancellationToken ct)
+    public async Task SaveRankingsAsync(Guid sessionId, Dictionary<int, int> rankings, HashSet<int> unacceptableIds, CancellationToken ct)
     {
         var session = await _db.ComparisonSessions
             .Include(s => s.SummaryResults)
@@ -116,6 +116,7 @@ public class SummarizationService
             {
                 result.UserRank = rank;
             }
+            result.IsUnacceptable = unacceptableIds.Contains(result.Id);
         }
 
         session.IsRanked = true;
@@ -132,5 +133,39 @@ public class SummarizationService
             .OrderByDescending(s => s.CreatedAt)
             .Take(count)
             .ToListAsync(ct);
+    }
+
+    // Admin methods
+    public async Task<List<ComparisonSession>> GetAllSessionsAsync(CancellationToken ct)
+    {
+        return await _db.ComparisonSessions
+            .Include(s => s.SummaryResults)
+                .ThenInclude(r => r.ProviderModel)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    public async Task DeleteSessionAsync(Guid sessionId, CancellationToken ct)
+    {
+        var session = await _db.ComparisonSessions
+            .Include(s => s.SummaryResults)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+
+        if (session != null)
+        {
+            _db.SummaryResults.RemoveRange(session.SummaryResults);
+            _db.ComparisonSessions.Remove(session);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task ToggleResultFlagAsync(int resultId, CancellationToken ct)
+    {
+        var result = await _db.SummaryResults.FindAsync(new object[] { resultId }, ct);
+        if (result != null)
+        {
+            result.IsUnacceptable = !result.IsUnacceptable;
+            await _db.SaveChangesAsync(ct);
+        }
     }
 }

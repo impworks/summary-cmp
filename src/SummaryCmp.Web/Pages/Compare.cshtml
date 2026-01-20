@@ -21,6 +21,7 @@
 <form method="post" id="rankingForm">
     <input type="hidden" name="sessionId" value="@Model.Session?.Id" />
     <input type="hidden" name="rankingOrder" id="rankingOrder" value="" />
+    <input type="hidden" name="unacceptableIds" id="unacceptableIds" value="" />
 
     <div class="flex flex-col lg:flex-row gap-6">
         <!-- Left column: Original text -->
@@ -67,7 +68,18 @@
                                         </svg>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="font-medium text-base-content/50 text-sm mb-2">Summary @labels[successIndex]</div>
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="font-medium text-base-content/50 text-sm">Summary @labels[successIndex]</div>
+                                            <button type="button"
+                                                    class="flag-btn btn btn-ghost btn-xs gap-1 text-base-content/40 hover:text-error hover:bg-error/10"
+                                                    data-id="@result.Id"
+                                                    title="Flag as unacceptable (hallucinated, missed point, etc.)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                                </svg>
+                                                <span class="flag-label">Flag</span>
+                                            </button>
+                                        </div>
                                         <p class="whitespace-pre-wrap text-sm">@result.SummaryText</p>
                                     </div>
                                 </div>
@@ -128,6 +140,40 @@
 
             let draggedItem = null;
             let placeholder = null;
+            const flaggedIds = new Set();
+
+            // Flag button handling
+            function updateFlaggedIds() {
+                document.getElementById('unacceptableIds').value = Array.from(flaggedIds).join(',');
+            }
+
+            sortableList.addEventListener('click', function(e) {
+                const flagBtn = e.target.closest('.flag-btn');
+                if (!flagBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const id = parseInt(flagBtn.dataset.id);
+                const card = flagBtn.closest('.summary-card');
+                const label = flagBtn.querySelector('.flag-label');
+
+                if (flaggedIds.has(id)) {
+                    flaggedIds.delete(id);
+                    flagBtn.classList.remove('text-error', 'bg-error/10');
+                    flagBtn.classList.add('text-base-content/40');
+                    card.classList.remove('border-error/50', 'bg-error/5');
+                    label.textContent = 'Flag';
+                } else {
+                    flaggedIds.add(id);
+                    flagBtn.classList.add('text-error', 'bg-error/10');
+                    flagBtn.classList.remove('text-base-content/40');
+                    card.classList.add('border-error/50', 'bg-error/5');
+                    label.textContent = 'Flagged';
+                }
+
+                updateFlaggedIds();
+            });
 
             // Create placeholder element
             function createPlaceholder() {

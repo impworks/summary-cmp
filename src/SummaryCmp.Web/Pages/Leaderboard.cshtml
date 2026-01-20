@@ -38,6 +38,12 @@ else
                             <span class="sort-icon text-base-content/40"></span>
                         </div>
                     </th>
+                    <th class="sortable cursor-pointer hover:bg-base-300" data-sort="unacceptable">
+                        <div class="flex items-center gap-1">
+                            Unacceptable
+                            <span class="sort-icon text-base-content/40"></span>
+                        </div>
+                    </th>
                     <th class="sortable cursor-pointer hover:bg-base-300" data-sort="duration">
                         <div class="flex items-center gap-1">
                             Avg. Duration
@@ -57,6 +63,7 @@ else
                 {
                     <tr data-avg-rank="@entry.AverageRank.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                         data-failed="@entry.FailedCount"
+                        data-unacceptable="@entry.UnacceptableCount"
                         data-duration="@entry.AverageDurationMs.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                         data-price="@(entry.AveragePrice?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
                         data-comparisons="@entry.TotalComparisons">
@@ -83,6 +90,16 @@ else
                             @if (entry.FailedCount > 0)
                             {
                                 <span class="badge badge-error badge-sm">@entry.FailedCount</span>
+                            }
+                            else
+                            {
+                                <span class="text-base-content/40">0</span>
+                            }
+                        </td>
+                        <td>
+                            @if (entry.UnacceptableCount > 0)
+                            {
+                                <span class="badge badge-warning badge-sm">@entry.UnacceptableCount</span>
                             }
                             else
                             {
@@ -123,6 +140,7 @@ else
                 <li><strong>#1 Wins:</strong> Number of times this provider was ranked first.</li>
                 <li><strong>Comparisons:</strong> Total number of successful comparisons this provider participated in.</li>
                 <li><strong>Failed:</strong> Number of failed requests (e.g., content filtering, API errors).</li>
+                <li><strong>Unacceptable:</strong> Number of summaries flagged as unacceptable (hallucinations, missed the point, etc.).</li>
                 <li><strong>Avg. Duration:</strong> Average time taken to generate summaries.</li>
                 <li><strong>Avg. Price:</strong> Average estimated cost per request based on token usage.</li>
             </ul>
@@ -177,6 +195,7 @@ else
                 const dataAttr = {
                     'avgRank': 'avgRank',
                     'failed': 'failed',
+                    'unacceptable': 'unacceptable',
                     'duration': 'duration',
                     'price': 'price'
                 }[column];

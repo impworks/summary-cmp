@@ -33,4 +33,5 @@ public class MicrosoftFoundryOptions
 public class AuthOptions
 {
     public string Password { get; set; } = string.Empty;
+    public string AdminPassword { get; set; } = string.Empty;
 }

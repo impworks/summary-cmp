@@ -32,6 +32,7 @@ public class LeaderboardService
             {
                 var successfulRanked = g.Where(r => r.IsSuccess && r.UserRank.HasValue).ToList();
                 var failed = g.Where(r => !r.IsSuccess).ToList();
+                var unacceptable = g.Where(r => r.IsUnacceptable).ToList();
 
                 // Calculate average price
                 decimal? averagePrice = null;
@@ -59,6 +60,7 @@ public class LeaderboardService
                     FirstPlaceWins = successfulRanked.Count(r => r.UserRank == 1),
                     AverageDurationMs = successfulRanked.Count > 0 ? successfulRanked.Average(r => r.DurationMs) : 0,
                     FailedCount = failed.Count,
+                    UnacceptableCount = unacceptable.Count,
                     AveragePrice = averagePrice
                 };
             })
@@ -81,5 +83,6 @@ public class LeaderboardEntry
     public int FirstPlaceWins { get; set; }
     public double AverageDurationMs { get; set; }
     public int FailedCount { get; set; }
+    public int UnacceptableCount { get; set; }
     public decimal? AveragePrice { get; set; }
 }
