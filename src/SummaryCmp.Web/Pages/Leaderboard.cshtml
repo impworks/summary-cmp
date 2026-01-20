@@ -102,7 +102,7 @@ else
                         <td>
                             @if (entry.AveragePrice.HasValue)
                             {
-                                $@entry.AveragePrice.Value.ToString("F6")
+                                <text>$</text>@entry.AveragePrice.Value.ToString("F6")
                             }
                             else
                             {
