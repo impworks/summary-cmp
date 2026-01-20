@@ -1,0 +1,276 @@
+@page "{id:guid}"
+@model SummaryCmp.Web.Pages.CompareModel
+@{
+    ViewData["Title"] = "Compare Summaries";
+    var labels = new[] { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" };
+}
+
+<h1 class="text-3xl font-bold mb-2">Compare Summaries</h1>
+<p class="text-base-content/70 mb-6">Drag summaries to reorder them from best (top) to worst (bottom). Provider names are hidden until you submit.</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div role="alert" class="alert alert-error mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>@Model.ErrorMessage</span>
+    </div>
+}
+
+<form method="post" id="rankingForm">
+    <input type="hidden" name="sessionId" value="@Model.Session?.Id" />
+    <input type="hidden" name="rankingOrder" id="rankingOrder" value="" />
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Left column: Original text -->
+        <div class="lg:w-1/3">
+            <div class="lg:sticky lg:top-4">
+                <div class="card bg-base-200">
+                    <div class="card-body">
+                        <h2 class="card-title text-lg">Original Text</h2>
+                        @if (!string.IsNullOrEmpty(Model.Session?.SampleDescription))
+                        {
+                            <div class="text-sm text-primary/80 italic">@Model.Session.SampleDescription</div>
+                        }
+                        <div class="divider my-1"></div>
+                        <p class="whitespace-pre-wrap text-sm max-h-[70vh] overflow-y-auto">@Model.Session?.InputText</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column: Summaries -->
+        <div class="lg:w-2/3 space-y-4">
+            @if (Model.SuccessfulResults.Any())
+            {
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm font-medium text-base-content/70">Drag to reorder</span>
+                    <span class="badge badge-sm">Best at top</span>
+                </div>
+
+                <div id="sortableList" class="space-y-3">
+                    @{
+                        var successIndex = 0;
+                    }
+                    @foreach (var result in Model.SuccessfulResults)
+                    {
+                        <div class="summary-card card bg-base-100 shadow-md cursor-grab active:cursor-grabbing border-2 border-transparent hover:border-primary/30 transition-colors"
+                             data-id="@result.Id"
+                             draggable="true">
+                            <div class="card-body py-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <span class="rank-number badge badge-primary badge-lg font-bold">@(successIndex + 1)</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-medium text-base-content/50 text-sm mb-2">Summary @labels[successIndex]</div>
+                                        <p class="whitespace-pre-wrap text-sm">@result.SummaryText</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        successIndex++;
+                    }
+                </div>
+            }
+            else
+            {
+                <div role="alert" class="alert alert-warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>No successful summaries to compare. All providers failed.</span>
+                </div>
+            }
+
+            @if (Model.FailedResults.Any())
+            {
+                <div class="divider">Failed</div>
+
+                <div class="space-y-2">
+                    @foreach (var result in Model.FailedResults)
+                    {
+                        <div class="collapse collapse-arrow bg-base-200/50 border border-error/20">
+                            <input type="checkbox" />
+                            <div class="collapse-title py-3 min-h-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="badge badge-error badge-sm">Failed</span>
+                                    <span class="text-sm text-base-content/70">@result.ProviderModel.DisplayName</span>
+                                </div>
+                            </div>
+                            <div class="collapse-content">
+                                <p class="text-sm text-error">@result.ErrorMessage</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (Model.SuccessfulResults.Any())
+            {
+                <div class="flex justify-end pt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Submit Rankings</button>
+                </div>
+            }
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sortableList = document.getElementById('sortableList');
+            if (!sortableList) return;
+
+            let draggedItem = null;
+            let placeholder = null;
+
+            // Create placeholder element
+            function createPlaceholder() {
+                const el = document.createElement('div');
+                el.className = 'drop-placeholder rounded-lg border-2 border-dashed border-primary bg-primary/10 flex items-center justify-center text-primary/60 text-sm font-medium';
+                el.style.height = '60px';
+                el.innerHTML = '<span>Drop here</span>';
+                return el;
+            }
+
+            // Remove placeholder
+            function removePlaceholder() {
+                if (placeholder && placeholder.parentNode) {
+                    placeholder.parentNode.removeChild(placeholder);
+                }
+                placeholder = null;
+            }
+
+            // Update ranking order hidden field
+            function updateRankingOrder() {
+                const items = sortableList.querySelectorAll('.summary-card');
+                const order = Array.from(items).map(item => item.dataset.id);
+                document.getElementById('rankingOrder').value = order.join(',');
+
+                // Update rank numbers
+                items.forEach((item, index) => {
+                    const rankBadge = item.querySelector('.rank-number');
+                    if (rankBadge) {
+                        rankBadge.textContent = index + 1;
+                    }
+                });
+            }
+
+            // Initialize order
+            updateRankingOrder();
+
+            // Drag events
+            sortableList.addEventListener('dragstart', function(e) {
+                if (e.target.classList.contains('summary-card')) {
+                    draggedItem = e.target;
+                    e.target.classList.add('opacity-50', 'scale-[0.98]');
+                    e.dataTransfer.effectAllowed = 'move';
+                    placeholder = createPlaceholder();
+                }
+            });
+
+            sortableList.addEventListener('dragend', function(e) {
+                if (e.target.classList.contains('summary-card')) {
+                    e.target.classList.remove('opacity-50', 'scale-[0.98]');
+                    draggedItem = null;
+                    removePlaceholder();
+                }
+            });
+
+            sortableList.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                const target = e.target.closest('.summary-card');
+                if (target && target !== draggedItem && placeholder) {
+                    const rect = target.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+
+                    // Insert placeholder at the right position
+                    if (e.clientY < midY) {
+                        if (placeholder.nextSibling !== target) {
+                            target.parentNode.insertBefore(placeholder, target);
+                        }
+                    } else {
+                        if (placeholder.previousSibling !== target) {
+                            target.parentNode.insertBefore(placeholder, target.nextSibling);
+                        }
+                    }
+                }
+            });
+
+            sortableList.addEventListener('dragleave', function(e) {
+                // Only remove if leaving the sortable list entirely
+                if (e.target === sortableList && !sortableList.contains(e.relatedTarget)) {
+                    removePlaceholder();
+                }
+            });
+
+            sortableList.addEventListener('drop', function(e) {
+                e.preventDefault();
+
+                if (placeholder && placeholder.parentNode && draggedItem) {
+                    placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                    updateRankingOrder();
+                }
+
+                removePlaceholder();
+            });
+
+            // Touch support for mobile
+            let touchedItem = null;
+            let touchPlaceholder = null;
+
+            sortableList.addEventListener('touchstart', function(e) {
+                const target = e.target.closest('.summary-card');
+                if (target) {
+                    touchedItem = target;
+                    target.classList.add('opacity-50', 'scale-[0.98]');
+                    touchPlaceholder = createPlaceholder();
+                }
+            }, { passive: true });
+
+            sortableList.addEventListener('touchmove', function(e) {
+                if (!touchedItem || !touchPlaceholder) return;
+
+                const touch = e.touches[0];
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetCard = elementBelow?.closest('.summary-card');
+
+                if (targetCard && targetCard !== touchedItem) {
+                    const rect = targetCard.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+
+                    if (touch.clientY < midY) {
+                        if (touchPlaceholder.nextSibling !== targetCard) {
+                            targetCard.parentNode.insertBefore(touchPlaceholder, targetCard);
+                        }
+                    } else {
+                        if (touchPlaceholder.previousSibling !== targetCard) {
+                            targetCard.parentNode.insertBefore(touchPlaceholder, targetCard.nextSibling);
+                        }
+                    }
+                }
+            }, { passive: true });
+
+            sortableList.addEventListener('touchend', function(e) {
+                if (!touchedItem) return;
+
+                if (touchPlaceholder && touchPlaceholder.parentNode) {
+                    touchPlaceholder.parentNode.insertBefore(touchedItem, touchPlaceholder);
+                    touchPlaceholder.parentNode.removeChild(touchPlaceholder);
+                    updateRankingOrder();
+                }
+
+                touchedItem.classList.remove('opacity-50', 'scale-[0.98]');
+                touchedItem = null;
+                touchPlaceholder = null;
+            });
+        });
+    </script>
+}

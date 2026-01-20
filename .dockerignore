@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vs
+.vscode
+.idea
+*.user
+
+# Build outputs
+**/bin
+**/obj
+
+# Development settings with secrets
+**/appsettings.Development.json
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+
+# Claude
+.claude

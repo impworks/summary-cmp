@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s \"C:\\\\kurosh\\\\sources\\\\summary-cmp\")",
+      "Bash(dir:*)",
+      "Bash(git config:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(timeout 10 dotnet run:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

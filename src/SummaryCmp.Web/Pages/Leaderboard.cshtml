@@ -1,0 +1,259 @@
+@page
+@model SummaryCmp.Web.Pages.LeaderboardModel
+@{
+    ViewData["Title"] = "Leaderboard";
+}
+
+<h1 class="text-3xl font-bold mb-2">Leaderboard</h1>
+<p class="text-base-content/70 mb-6">Provider rankings based on user preferences across all comparisons.</p>
+
+@if (!Model.Entries.Any())
+{
+    <div role="alert" class="alert bg-base-200 text-base-content">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="h-6 w-6 shrink-0 stroke-current opacity-60">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>No ranked comparisons yet. <a asp-page="/Index" class="link link-primary">Start a comparison</a> and rank the summaries to see leaderboard data.</span>
+    </div>
+}
+else
+{
+    <div class="overflow-x-auto mb-6">
+        <table class="table" id="leaderboardTable">
+            <thead>
+                <tr class="bg-base-200">
+                    <th>Rank</th>
+                    <th>Provider</th>
+                    <th class="sortable cursor-pointer hover:bg-base-300" data-sort="avgRank">
+                        <div class="flex items-center gap-1">
+                            Avg. Rank
+                            <span class="sort-icon text-base-content/40"></span>
+                        </div>
+                    </th>
+                    <th>#1 Wins</th>
+                    <th>Comparisons</th>
+                    <th class="sortable cursor-pointer hover:bg-base-300" data-sort="failed">
+                        <div class="flex items-center gap-1">
+                            Failed
+                            <span class="sort-icon text-base-content/40"></span>
+                        </div>
+                    </th>
+                    <th class="sortable cursor-pointer hover:bg-base-300" data-sort="duration">
+                        <div class="flex items-center gap-1">
+                            Avg. Duration
+                            <span class="sort-icon text-base-content/40"></span>
+                        </div>
+                    </th>
+                    <th class="sortable cursor-pointer hover:bg-base-300" data-sort="price">
+                        <div class="flex items-center gap-1">
+                            Avg. Price
+                            <span class="sort-icon text-base-content/40"></span>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in Model.Entries)
+                {
+                    <tr data-avg-rank="@entry.AverageRank.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                        data-failed="@entry.FailedCount"
+                        data-duration="@entry.AverageDurationMs.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                        data-price="@(entry.AveragePrice?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                        data-comparisons="@entry.TotalComparisons">
+                        <td>
+                            <span class="badge rank-badge badge-neutral"></span>
+                        </td>
+                        <td>
+                            <div class="font-bold">@entry.DisplayName</div>
+                            <div class="text-sm text-base-content/60">@entry.ProviderKey</div>
+                        </td>
+                        <td>
+                            @if (entry.TotalComparisons > 0)
+                            {
+                                @entry.AverageRank.ToString("F2")
+                            }
+                            else
+                            {
+                                <span class="text-base-content/40">-</span>
+                            }
+                        </td>
+                        <td>@entry.FirstPlaceWins</td>
+                        <td>@entry.TotalComparisons</td>
+                        <td>
+                            @if (entry.FailedCount > 0)
+                            {
+                                <span class="badge badge-error badge-sm">@entry.FailedCount</span>
+                            }
+                            else
+                            {
+                                <span class="text-base-content/40">0</span>
+                            }
+                        </td>
+                        <td>
+                            @if (entry.TotalComparisons > 0)
+                            {
+                                @entry.AverageDurationMs.ToString("F0")<text> ms</text>
+                            }
+                            else
+                            {
+                                <span class="text-base-content/40">-</span>
+                            }
+                        </td>
+                        <td>
+                            @if (entry.AveragePrice.HasValue)
+                            {
+                                @entry.AveragePrice.Value.ToString("C6")
+                            }
+                            else
+                            {
+                                <span class="text-base-content/40">-</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h2 class="card-title">How Rankings Work</h2>
+            <ul class="list-disc list-inside space-y-1">
+                <li><strong>Avg. Rank:</strong> Lower is better. Average position assigned by users (1 = best).</li>
+                <li><strong>#1 Wins:</strong> Number of times this provider was ranked first.</li>
+                <li><strong>Comparisons:</strong> Total number of successful comparisons this provider participated in.</li>
+                <li><strong>Failed:</strong> Number of failed requests (e.g., content filtering, API errors).</li>
+                <li><strong>Avg. Duration:</strong> Average time taken to generate summaries.</li>
+                <li><strong>Avg. Price:</strong> Average estimated cost per request based on token usage.</li>
+            </ul>
+        </div>
+    </div>
+}
+
+<a asp-page="/Index" class="btn btn-primary mt-6">New Comparison</a>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('leaderboardTable');
+            if (!table) return;
+
+            const tbody = table.querySelector('tbody');
+            const headers = table.querySelectorAll('th.sortable');
+
+            let currentSort = { column: 'avgRank', direction: 'asc' };
+
+            const sortIcons = {
+                none: '',
+                asc: '<svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>',
+                desc: '<svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>'
+            };
+
+            function updateRankBadges() {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    const badge = row.querySelector('.rank-badge');
+                    const rank = index + 1;
+
+                    badge.textContent = rank;
+                    badge.className = 'badge rank-badge';
+
+                    if (rank === 1) badge.classList.add('badge-success');
+                    else if (rank === 2) badge.classList.add('badge-primary');
+                    else if (rank === 3) badge.classList.add('badge-warning');
+                    else badge.classList.add('badge-neutral');
+
+                    // Update row background
+                    row.className = '';
+                    if (rank === 1) row.classList.add('bg-success/20');
+                    else if (rank === 2) row.classList.add('bg-primary/20');
+                    else if (rank === 3) row.classList.add('bg-warning/20');
+                });
+            }
+
+            function sortTable(column, direction) {
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                const dataAttr = {
+                    'avgRank': 'avgRank',
+                    'failed': 'failed',
+                    'duration': 'duration',
+                    'price': 'price'
+                }[column];
+
+                rows.sort((a, b) => {
+                    let aVal = parseFloat(a.dataset[dataAttr]) || 0;
+                    let bVal = parseFloat(b.dataset[dataAttr]) || 0;
+
+                    // For avgRank, treat 0 (no comparisons) as worst
+                    if (column === 'avgRank') {
+                        const aComparisons = parseInt(a.dataset.comparisons) || 0;
+                        const bComparisons = parseInt(b.dataset.comparisons) || 0;
+                        if (aComparisons === 0) aVal = direction === 'asc' ? Infinity : -Infinity;
+                        if (bComparisons === 0) bVal = direction === 'asc' ? Infinity : -Infinity;
+                    }
+
+                    // For duration, treat 0 (no comparisons) as worst
+                    if (column === 'duration') {
+                        const aComparisons = parseInt(a.dataset.comparisons) || 0;
+                        const bComparisons = parseInt(b.dataset.comparisons) || 0;
+                        if (aComparisons === 0) aVal = direction === 'asc' ? Infinity : -Infinity;
+                        if (bComparisons === 0) bVal = direction === 'asc' ? Infinity : -Infinity;
+                    }
+
+                    // For price, treat empty (no price data) as worst
+                    if (column === 'price') {
+                        if (!a.dataset.price) aVal = direction === 'asc' ? Infinity : -Infinity;
+                        if (!b.dataset.price) bVal = direction === 'asc' ? Infinity : -Infinity;
+                    }
+
+                    if (direction === 'asc') {
+                        return aVal - bVal;
+                    } else {
+                        return bVal - aVal;
+                    }
+                });
+
+                rows.forEach(row => tbody.appendChild(row));
+                updateRankBadges();
+            }
+
+            function updateSortIcons() {
+                headers.forEach(header => {
+                    const icon = header.querySelector('.sort-icon');
+                    const column = header.dataset.sort;
+
+                    if (column === currentSort.column) {
+                        icon.innerHTML = sortIcons[currentSort.direction];
+                        icon.classList.remove('text-base-content/40');
+                        icon.classList.add('text-primary');
+                    } else {
+                        icon.innerHTML = sortIcons.none;
+                        icon.classList.remove('text-primary');
+                        icon.classList.add('text-base-content/40');
+                    }
+                });
+            }
+
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    const column = this.dataset.sort;
+
+                    if (currentSort.column === column) {
+                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSort.column = column;
+                        currentSort.direction = 'asc';
+                    }
+
+                    sortTable(currentSort.column, currentSort.direction);
+                    updateSortIcons();
+                });
+            });
+
+            // Initial sort and display
+            updateRankBadges();
+            updateSortIcons();
+        });
+    </script>
+}

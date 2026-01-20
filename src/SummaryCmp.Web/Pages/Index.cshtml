@@ -1,0 +1,272 @@
+@page
+@model SummaryCmp.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "New Comparison";
+}
+
+<div class="card bg-info/10 mb-6">
+    <div class="card-body py-4">
+        <div class="flex gap-4">
+            <div class="shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-info/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="space-y-2 text-sm">
+                <p><strong>Team Nebula is choosing the best text summary provider for AI Studio.</strong></p>
+                <p>As the quality of summarization is highly subjective, the most valuable metric is input from real people.<br/>Please read the summaries attentively and rank them in order of your personal preference.</p>
+                <p>If you have interesting use cases not listed in the examples, you can try them out too and <a href="mailto:andrei.kurosh@c4b.de" class="link link-primary">let us know</a>.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h1 class="text-3xl font-bold mb-2">New Comparison</h1>
+<p class="text-base-content/70 mb-6">Select a sample text or enter custom text to summarize and compare across multiple AI providers.</p>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div role="alert" class="alert alert-error mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>@Model.ErrorMessage</span>
+    </div>
+}
+
+<form method="post">
+    <input type="hidden" name="sampleFileName" id="sampleFileName" value="" />
+    <input type="hidden" name="sampleDescription" id="sampleDescription" value="" />
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Left column: Sample list -->
+        <div class="lg:w-1/3">
+            <h3 class="font-semibold mb-3">Sample Texts</h3>
+            <ul class="menu bg-base-200 rounded-box w-full" id="sampleList">
+                @foreach (var sample in Model.SampleTexts)
+                {
+                    <li>
+                        <a class="sample-item flex items-center gap-2"
+                           data-title="@sample.Title"
+                           data-content="@sample.Content"
+                           data-description="@sample.Description">
+                            <span class="status-icon">
+                                <!-- Question mark icon (default) -->
+                                <svg class="icon-pending h-5 w-5 text-warning" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <!-- Checkbox icon (completed) -->
+                                <svg class="icon-completed h-5 w-5 text-success hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </span>
+                            <span class="flex-1">@sample.Title</span>
+                        </a>
+                    </li>
+                }
+                <li class="border-t border-base-300 mt-2 pt-2">
+                    <a class="sample-item flex items-center gap-2"
+                       data-title=""
+                       data-content=""
+                       data-description="">
+                        <span class="status-icon">
+                            <svg class="h-5 w-5 text-base-content/40" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </span>
+                        <span class="flex-1">Custom Text</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Right column: Text input and controls -->
+        <div class="lg:w-2/3 space-y-4">
+            <div id="sampleDescriptionDisplay" class="hidden">
+                <div class="alert bg-base-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        <div class="text-xs font-semibold opacity-70">Sample Characteristics</div>
+                        <div id="sampleDescriptionText"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-control w-full">
+                <label class="label" for="inputText">
+                    <span class="label-text">Text to Summarize</span>
+                </label>
+                <textarea class="textarea textarea-bordered h-64 w-full text-base" id="inputText" name="inputText" required placeholder="Enter or paste the text you want to summarize...">@Model.InputText</textarea>
+                <label class="label">
+                    <span class="label-text-alt">Minimum 50 characters recommended for meaningful summaries.</span>
+                </label>
+            </div>
+
+            <div>
+                <h3 class="font-semibold mb-2">Providers</h3>
+                <div class="flex flex-wrap gap-2">
+                    @foreach (var provider in Model.Providers)
+                    {
+                        if (provider.IsConfigured)
+                        {
+                            <span class="badge badge-sm gap-1 bg-transparent border border-base-300 text-base-content">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                @provider.DisplayName
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-ghost badge-sm gap-1 opacity-50">
+                                @provider.DisplayName
+                            </span>
+                        }
+                    }
+                </div>
+                @if (!Model.HasConfiguredProviders)
+                {
+                    <div role="alert" class="alert alert-warning mt-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>No providers are configured. Please set API keys in the configuration.</span>
+                    </div>
+                }
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn btn-primary btn-lg" @(Model.HasConfiguredProviders ? "" : "disabled")>
+                <span id="submitText">Compare Summaries</span>
+                <span id="submitLoading" class="hidden">
+                    <span class="loading loading-spinner loading-sm"></span>
+                    Processing...
+                </span>
+            </button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        const STORAGE_KEY = 'completedSamples';
+
+        function getCompletedSamples() {
+            try {
+                return JSON.parse(sessionStorage.getItem(STORAGE_KEY)) || [];
+            } catch {
+                return [];
+            }
+        }
+
+        function markSampleCompleted(title) {
+            if (!title) return;
+            const completed = getCompletedSamples();
+            if (!completed.includes(title)) {
+                completed.push(title);
+                sessionStorage.setItem(STORAGE_KEY, JSON.stringify(completed));
+            }
+        }
+
+        function updateCompletionIcons() {
+            const completed = getCompletedSamples();
+            document.querySelectorAll('.sample-item').forEach(item => {
+                const title = item.dataset.title;
+                if (title && completed.includes(title)) {
+                    item.querySelector('.icon-pending')?.classList.add('hidden');
+                    item.querySelector('.icon-completed')?.classList.remove('hidden');
+                }
+            });
+        }
+
+        function selectSample(item) {
+            // Remove active class from all items
+            document.querySelectorAll('.sample-item').forEach(el => el.classList.remove('active'));
+
+            // Add active class to selected item
+            item.classList.add('active');
+
+            // Update form fields
+            const title = item.dataset.title;
+            const content = item.dataset.content;
+            const description = item.dataset.description;
+
+            document.getElementById('sampleFileName').value = title;
+            document.getElementById('sampleDescription').value = description || '';
+            document.getElementById('inputText').value = content;
+
+            // Show/hide description
+            const descriptionDisplay = document.getElementById('sampleDescriptionDisplay');
+            const descriptionText = document.getElementById('sampleDescriptionText');
+
+            if (description && title) {
+                descriptionText.textContent = description;
+                descriptionDisplay.classList.remove('hidden');
+            } else {
+                descriptionDisplay.classList.add('hidden');
+            }
+
+            // Enable/disable textarea editing for custom text
+            const textarea = document.getElementById('inputText');
+            textarea.readOnly = !!title;
+            if (!title) {
+                textarea.focus();
+            }
+        }
+
+        function selectFirstIncomplete() {
+            const completed = getCompletedSamples();
+            const items = document.querySelectorAll('.sample-item');
+
+            // Find first non-completed sample (excluding custom text which has empty title)
+            for (const item of items) {
+                const title = item.dataset.title;
+                if (title && !completed.includes(title)) {
+                    selectSample(item);
+                    return;
+                }
+            }
+
+            // If all completed, select custom text (last item)
+            const lastItem = items[items.length - 1];
+            if (lastItem) {
+                selectSample(lastItem);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update completion icons
+            updateCompletionIcons();
+
+            // Add click handlers to sample items
+            document.querySelectorAll('.sample-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    selectSample(this);
+                });
+            });
+
+            // Select first incomplete item
+            selectFirstIncomplete();
+
+            // Form submission handling
+            const form = document.querySelector('form');
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitLoading = document.getElementById('submitLoading');
+
+            form.addEventListener('submit', function() {
+                // Mark current sample as completed
+                const sampleFileName = document.getElementById('sampleFileName').value;
+                if (sampleFileName) {
+                    markSampleCompleted(sampleFileName);
+                }
+
+                submitBtn.disabled = true;
+                submitText.classList.add('hidden');
+                submitLoading.classList.remove('hidden');
+            });
+        });
+    </script>
+}

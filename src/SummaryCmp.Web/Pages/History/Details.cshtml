@@ -1,0 +1,108 @@
+@page "{id:guid}"
+@model SummaryCmp.Web.Pages.History.DetailsModel
+@{
+    ViewData["Title"] = "Session Details";
+}
+
+<div class="text-sm breadcrumbs mb-4">
+    <ul>
+        <li><a asp-page="/History/Index">History</a></li>
+        <li>Session Details</li>
+    </ul>
+</div>
+
+<h1 class="text-3xl font-bold mb-6">Session Details</h1>
+
+<div class="card bg-base-200 mb-6">
+    <div class="card-body">
+        <h2 class="card-title">Session Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div>
+                <span class="text-base-content/60 text-sm">Created</span>
+                <p class="font-medium">@Model.Session?.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</p>
+            </div>
+            <div>
+                <span class="text-base-content/60 text-sm">Completed</span>
+                <p class="font-medium">@(Model.Session?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "Not yet")</p>
+            </div>
+            <div>
+                <span class="text-base-content/60 text-sm">Status</span>
+                <p>
+                    @if (Model.Session?.IsRanked == true)
+                    {
+                        <span class="badge badge-success">Ranked</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-warning">Pending</span>
+                    }
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-base-200 mb-6">
+    <div class="card-body">
+        <h2 class="card-title">Original Text</h2>
+        <p class="whitespace-pre-wrap">@Model.Session?.InputText</p>
+    </div>
+</div>
+
+<h3 class="text-xl font-semibold mb-4">Summaries</h3>
+
+<div class="space-y-4 mb-6">
+    @foreach (var result in Model.Results)
+    {
+        var borderClass = result.UserRank switch
+        {
+            1 => "border-l-4 border-l-success",
+            2 => "border-l-4 border-l-primary",
+            3 => "border-l-4 border-l-warning",
+            _ => "border-l-4 border-l-base-300"
+        };
+        var badgeClass = result.UserRank switch
+        {
+            1 => "badge-success",
+            2 => "badge-primary",
+            3 => "badge-warning",
+            _ => "badge-neutral"
+        };
+
+        <div class="card bg-base-100 shadow-md @borderClass">
+            <div class="card-body">
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        @if (result.UserRank.HasValue)
+                        {
+                            <span class="badge @badgeClass text-lg px-3 py-3">#@result.UserRank</span>
+                        }
+                        <div>
+                            <span class="font-bold">@result.ProviderModel.DisplayName</span>
+                            <span class="text-base-content/60 text-sm ml-1">(@result.ProviderModel.ModelId)</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-info">@result.DurationMs ms</span>
+                </div>
+                @if (result.IsSuccess)
+                {
+                    <p class="whitespace-pre-wrap">@result.SummaryText</p>
+                }
+                else
+                {
+                    <p class="text-error">
+                        <strong>Error:</strong> @result.ErrorMessage
+                    </p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div class="flex flex-wrap gap-2">
+    <a asp-page="/History/Index" class="btn btn-outline">Back to History</a>
+    @if (Model.Session?.IsRanked == false)
+    {
+        <a asp-page="/Compare" asp-route-id="@Model.Session.Id" class="btn btn-primary">Rank Summaries</a>
+    }
+</div>
