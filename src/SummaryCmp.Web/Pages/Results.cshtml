@@ -47,7 +47,7 @@
                     <div class="flex gap-2">
                         @if (Model.Prices.TryGetValue(result.Id, out var price) && price.HasValue)
                         {
-                            <span class="badge badge-accent">@price.Value.ToString("C6")</span>
+                            <span class="badge badge-accent">$@price.Value.ToString("F6")</span>
                         }
                         <span class="badge badge-info">@result.DurationMs ms</span>
                     </div>
