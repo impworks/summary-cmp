@@ -34,6 +34,7 @@ else
                 @foreach (var session in Model.Sessions)
                 {
                     var winner = session.SummaryResults.FirstOrDefault(r => r.UserRank == 1);
+                    var hasFlaggedResults = session.SummaryResults.Any(r => r.IsUnacceptable);
                     <tr>
                         <td class="whitespace-nowrap">@session.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
                         <td class="max-w-xs truncate">@(session.InputText.Length > 100 ? session.InputText.Substring(0, 100) + "..." : session.InputText)</td>
@@ -59,14 +60,22 @@ else
                             }
                         </td>
                         <td>
-                            @if (session.IsRanked)
-                            {
-                                <a asp-page="/Results" asp-route-id="@session.Id" class="btn btn-sm btn-outline btn-primary">View</a>
-                            }
-                            else
-                            {
-                                <a asp-page="/Compare" asp-route-id="@session.Id" class="btn btn-sm btn-primary">Rank</a>
-                            }
+                            <div class="flex items-center gap-2">
+                                @if (hasFlaggedResults)
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Contains flagged translations">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                    </svg>
+                                }
+                                @if (session.IsRanked)
+                                {
+                                    <a asp-page="/Results" asp-route-id="@session.Id" class="btn btn-sm btn-outline btn-primary">View</a>
+                                }
+                                else
+                                {
+                                    <a asp-page="/Compare" asp-route-id="@session.Id" class="btn btn-sm btn-primary">Rank</a>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }

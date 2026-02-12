@@ -34,11 +34,17 @@
             _ => "badge-neutral"
         };
 
-        <div class="card bg-base-100 shadow-md @borderClass">
+        <div class="card bg-base-100 shadow-md @borderClass @(result.IsUnacceptable ? "border-error/50 bg-error/5" : "")">
             <div class="card-body">
                 <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
                     <div class="flex items-center gap-2">
                         <span class="badge @badgeClass text-lg px-3 py-3">#@result.UserRank</span>
+                        @if (result.IsUnacceptable)
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Flagged as unacceptable">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                            </svg>
+                        }
                         <div>
                             <span class="font-bold">@result.ProviderModel.DisplayName</span>
                             <span class="text-base-content/60 text-sm ml-1">(@result.ProviderModel.ProviderKey / @result.ProviderModel.ModelId)</span>
